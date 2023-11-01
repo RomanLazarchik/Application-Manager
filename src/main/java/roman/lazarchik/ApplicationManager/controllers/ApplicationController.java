@@ -60,6 +60,12 @@ public class ApplicationController {
         return new ResponseEntity<>(acceptedApp, HttpStatus.OK);
     }
 
+    @PutMapping("/{id}/publish")
+    public ResponseEntity<Application> publishApplication(@PathVariable Long id) {
+        Application publishedApp = service.publishApplication(id);
+        return new ResponseEntity<>(publishedApp, HttpStatus.OK);
+    }
+
     @GetMapping
     public ResponseEntity<Page<Application>> getApplications(
             @RequestParam Optional<String> name,
@@ -69,12 +75,6 @@ public class ApplicationController {
 
         Page<Application> applications = service.getApplications(name.orElse(""), status.orElse(null), page, size);
         return new ResponseEntity<>(applications, HttpStatus.OK);
-    }
-
-    @PutMapping("/{id}/publish")
-    public ResponseEntity<Application> publishApplication(@PathVariable Long id) {
-        Application publishedApp = service.publishApplication(id);
-        return new ResponseEntity<>(publishedApp, HttpStatus.OK);
     }
 }
 

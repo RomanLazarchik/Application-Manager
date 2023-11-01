@@ -13,6 +13,19 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_FOUND);
     }
 
-    // ... обработчики других исключений ...
+    @ExceptionHandler(InvalidApplicationStatusException.class)
+    public ResponseEntity<String> handleInvalidApplicationStatusException(InvalidApplicationStatusException ex) {
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(ApplicationAlreadyPublishedException.class)
+    public ResponseEntity<String> handleApplicationAlreadyPublishedException(ApplicationAlreadyPublishedException ex) {
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(ContentEditNotAllowedException.class)
+    public ResponseEntity<String> handleContentEditNotAllowedException(ContentEditNotAllowedException ex) {
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
+    }
 }
 

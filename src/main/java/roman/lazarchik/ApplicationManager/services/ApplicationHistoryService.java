@@ -1,6 +1,5 @@
 package roman.lazarchik.ApplicationManager.services;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import roman.lazarchik.ApplicationManager.models.ApplicationHistory;
 import roman.lazarchik.ApplicationManager.repositories.ApplicationHistoryRepository;

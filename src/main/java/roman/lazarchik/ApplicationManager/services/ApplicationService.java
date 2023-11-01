@@ -1,13 +1,15 @@
 package roman.lazarchik.ApplicationManager.services;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import roman.lazarchik.ApplicationManager.dto.RejectDeleteDTO;
+import roman.lazarchik.ApplicationManager.exceptions.ApplicationAlreadyPublishedException;
 import roman.lazarchik.ApplicationManager.exceptions.ApplicationNotFoundException;
+import roman.lazarchik.ApplicationManager.exceptions.ContentEditNotAllowedException;
+import roman.lazarchik.ApplicationManager.exceptions.InvalidApplicationStatusException;
 import roman.lazarchik.ApplicationManager.models.Application;
 import roman.lazarchik.ApplicationManager.models.ApplicationHistory;
 import roman.lazarchik.ApplicationManager.models.ApplicationStatus;
@@ -18,12 +20,13 @@ import java.time.LocalDateTime;
 @Service
 public class ApplicationService {
 
-    @Autowired
-    private ApplicationRepository repository;
+    private final ApplicationRepository repository;
+    private final ApplicationHistoryService historyService;
 
-    @Autowired
-    private ApplicationHistoryService historyService;
-
+    public ApplicationService(ApplicationRepository repository, ApplicationHistoryService historyService) {
+        this.repository = repository;
+        this.historyService = historyService;
+    }
 
     private void saveHistory(Application app, ApplicationStatus newStatus) {
         ApplicationHistory history = new ApplicationHistory();
@@ -47,21 +50,19 @@ public class ApplicationService {
         if (app.getStatus() == ApplicationStatus.CREATED || app.getStatus() == ApplicationStatus.VERIFIED) {
             app.setContent(content);
             Application savedApp = repository.save(app);
-            saveHistory(savedApp, savedApp.getStatus());  // просто сохраняем историю с текущим статусом
+            saveHistory(savedApp, savedApp.getStatus());
             return savedApp;
         } else {
-            throw new RuntimeException("Cannot edit content in this status");
+            throw new ContentEditNotAllowedException("Cannot edit content in this status");
         }
     }
-
 
     @Transactional
     public Application rejectApplication(Long id, RejectDeleteDTO rejectDTO) {
         Application app = repository.findById(id).orElseThrow(() -> new ApplicationNotFoundException("Application not found with ID: " + id));
 
-        // Проверка текущего статуса
         if (app.getStatus() != ApplicationStatus.VERIFIED && app.getStatus() != ApplicationStatus.ACCEPTED) {
-            throw new RuntimeException("Can only reject applications with status VERIFIED or ACCEPTED");
+            throw new InvalidApplicationStatusException("Can only reject applications with status VERIFIED or ACCEPTED");
         }
 
         app.setStatus(ApplicationStatus.REJECTED);
@@ -76,13 +77,13 @@ public class ApplicationService {
         Application app = repository.findById(id).orElseThrow(() -> new ApplicationNotFoundException("Application not found with ID: " + id));
 
         if (app.getStatus() != ApplicationStatus.CREATED) {
-            throw new RuntimeException("Application can only be deleted in the CREATED status.");
+            throw new InvalidApplicationStatusException("Application can only be deleted in the CREATED status.");
         }
 
         app.setStatus(ApplicationStatus.DELETED);
         app.setReason(deleteDTO.getReason());
         repository.save(app);
-        saveHistory(app, ApplicationStatus.DELETED); // сохраняем историю изменения статуса
+        saveHistory(app, ApplicationStatus.DELETED);
     }
 
     @Transactional
@@ -91,12 +92,12 @@ public class ApplicationService {
                 .orElseThrow(() -> new ApplicationNotFoundException("Application not found with ID: " + id));
 
         if (app.getStatus() != ApplicationStatus.CREATED) {
-            throw new RuntimeException("Application can only be verified in the CREATED status.");
+            throw new InvalidApplicationStatusException("Application can only be verified in the CREATED status.");
         }
 
         app.setStatus(ApplicationStatus.VERIFIED);
         Application savedApp = repository.save(app);
-        saveHistory(savedApp, ApplicationStatus.VERIFIED); // сохраняем историю изменения статуса
+        saveHistory(savedApp, ApplicationStatus.VERIFIED);
         return savedApp;
     }
 
@@ -106,12 +107,12 @@ public class ApplicationService {
                 .orElseThrow(() -> new ApplicationNotFoundException("Application not found with ID: " + id));
 
         if (app.getStatus() != ApplicationStatus.VERIFIED) {
-            throw new RuntimeException("Application can only be accepted in the VERIFIED status.");
+            throw new InvalidApplicationStatusException("Application can only be accepted in the VERIFIED status.");
         }
 
         app.setStatus(ApplicationStatus.ACCEPTED);
         Application savedApp = repository.save(app);
-        saveHistory(savedApp, ApplicationStatus.ACCEPTED); // сохраняем историю изменения статуса
+        saveHistory(savedApp, ApplicationStatus.ACCEPTED);
         return savedApp;
     }
 
@@ -133,7 +134,7 @@ public class ApplicationService {
             saveHistory(app, ApplicationStatus.PUBLISHED);
             return app;
         } else {
-            throw new RuntimeException("Application is already published");
+            throw new ApplicationAlreadyPublishedException("Application is already published");
         }
     }
 }
