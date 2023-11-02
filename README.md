@@ -7,7 +7,6 @@ A Java Spring Boot application for managing applications throughout their lifecy
 - [API Endpoints](#API-Endpoints)
 - [Exceptions Handling](#Exceptions-Handling)
 - [Installation & Running](#Installation-and-Running)
-- [Dependencies](#Dependencies)
 - [Usage](#Usage)
 - [Contribution](#Contribution)
 
@@ -37,6 +36,7 @@ The system has built-in exception handling for various scenarios:
 - __Invalid application status.__
 - __Application is already published.__
 - __Editing content not allowed based on status.__
+- __Invalid input__
 
 ## Installation and Running
 1. Make sure you have Java JDK and Maven installed on your machine.
@@ -59,11 +59,6 @@ Or using Maven:
 mvn spring-boot:run
 ```
 The application will start, and you can access the API endpoints through http://localhost:8080/.
-
-## Dependencies
-- __Spring Boot:__ For building stand-alone, production-grade Spring based applications.
-- __Spring Data JPA:__ For easy database interactions and operations.
-- __H2 Database:__ An in-memory database used for development purposes.
 
 ## Usage
 Once the application is running, you can use tools like __Postman__ or __curl__ to interact with the API. Ensure to set the __Content-Type__ header to __application/json__ for requests.
