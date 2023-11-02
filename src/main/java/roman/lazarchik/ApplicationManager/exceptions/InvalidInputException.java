@@ -1,0 +1,7 @@
+package roman.lazarchik.ApplicationManager.exceptions;
+
+public class InvalidInputException extends RuntimeException {
+    public InvalidInputException(String message) {
+        super(message);
+    }
+}

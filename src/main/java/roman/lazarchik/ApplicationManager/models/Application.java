@@ -29,7 +29,7 @@ public class Application {
     private String reason;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "application_id") // имя столбца для внешнего ключа
+    @JoinColumn(name = "application_id")
     @JsonManagedReference
     private List<ApplicationHistory> histories = new ArrayList<>();
 

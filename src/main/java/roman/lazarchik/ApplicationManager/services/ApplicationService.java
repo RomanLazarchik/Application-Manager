@@ -6,10 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import roman.lazarchik.ApplicationManager.dto.RejectDeleteDTO;
-import roman.lazarchik.ApplicationManager.exceptions.ApplicationAlreadyPublishedException;
-import roman.lazarchik.ApplicationManager.exceptions.ApplicationNotFoundException;
-import roman.lazarchik.ApplicationManager.exceptions.ContentEditNotAllowedException;
-import roman.lazarchik.ApplicationManager.exceptions.InvalidApplicationStatusException;
+import roman.lazarchik.ApplicationManager.exceptions.*;
 import roman.lazarchik.ApplicationManager.models.Application;
 import roman.lazarchik.ApplicationManager.models.ApplicationHistory;
 import roman.lazarchik.ApplicationManager.models.ApplicationStatus;
@@ -37,6 +34,11 @@ public class ApplicationService {
     }
 
     public Application createApplication(Application app) {
+        if (app == null || app.getName() == null || app.getName().trim().isEmpty()
+                || app.getContent() == null || app.getContent().trim().isEmpty()) {
+            throw new InvalidInputException("Fields 'name' and 'content' must not be null or empty");
+        }
+
         app.setStatus(ApplicationStatus.CREATED);
         Application savedApp = repository.save(app);
         saveHistory(savedApp, ApplicationStatus.CREATED);
@@ -64,6 +66,9 @@ public class ApplicationService {
         if (app.getStatus() != ApplicationStatus.VERIFIED && app.getStatus() != ApplicationStatus.ACCEPTED) {
             throw new InvalidApplicationStatusException("Can only reject applications with status VERIFIED or ACCEPTED");
         }
+        if (rejectDTO.getReason() == null || rejectDTO.getReason().trim().isEmpty()) {
+            throw new IllegalArgumentException("A reason must be provided for rejecting an application. Please provide a valid reason in the 'reason' field.");
+        }
 
         app.setStatus(ApplicationStatus.REJECTED);
         app.setReason(rejectDTO.getReason());
@@ -78,6 +83,9 @@ public class ApplicationService {
 
         if (app.getStatus() != ApplicationStatus.CREATED) {
             throw new InvalidApplicationStatusException("Application can only be deleted in the CREATED status.");
+        }
+        if (deleteDTO.getReason() == null || deleteDTO.getReason().trim().isEmpty()) {
+            throw new IllegalArgumentException("A reason must be provided for deleting an application. Please provide a valid reason in the 'reason' field.");
         }
 
         app.setStatus(ApplicationStatus.DELETED);
