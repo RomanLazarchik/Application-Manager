@@ -1,5 +1,6 @@
 package roman.lazarchik.ApplicationManager.services;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -15,15 +16,11 @@ import roman.lazarchik.ApplicationManager.repositories.ApplicationRepository;
 import java.time.LocalDateTime;
 
 @Service
+@RequiredArgsConstructor
 public class ApplicationService {
 
     private final ApplicationRepository repository;
     private final ApplicationHistoryService historyService;
-
-    public ApplicationService(ApplicationRepository repository, ApplicationHistoryService historyService) {
-        this.repository = repository;
-        this.historyService = historyService;
-    }
 
     private void saveHistory(Application app, ApplicationStatus newStatus) {
         ApplicationHistory history = new ApplicationHistory();
@@ -32,7 +29,7 @@ public class ApplicationService {
         history.setApplication(app);
         historyService.saveHistory(history);
     }
-
+    @Transactional
     public Application createApplication(Application app) {
         if (app == null || app.getName() == null || app.getName().trim().isEmpty()
                 || app.getContent() == null || app.getContent().trim().isEmpty()) {
@@ -44,24 +41,30 @@ public class ApplicationService {
         saveHistory(savedApp, ApplicationStatus.CREATED);
         return savedApp;
     }
-
     @Transactional
     public Application updateContent(Long id, String content) {
         Application app = repository.findById(id).orElseThrow(() -> new ApplicationNotFoundException("Application not found with ID: " + id));
 
-        if (app.getStatus() == ApplicationStatus.CREATED || app.getStatus() == ApplicationStatus.VERIFIED) {
+        if (app.getStatus() != ApplicationStatus.CREATED && app.getStatus() != ApplicationStatus.VERIFIED) {
+            throw new ContentEditNotAllowedException("Cannot edit content in this status");
+        }
+
+        if (!app.getContent().equals(content)) {
             app.setContent(content);
             Application savedApp = repository.save(app);
             saveHistory(savedApp, savedApp.getStatus());
             return savedApp;
         } else {
-            throw new ContentEditNotAllowedException("Cannot edit content in this status");
+            return app;
         }
     }
-
     @Transactional
     public Application rejectApplication(Long id, RejectDeleteDTO rejectDTO) {
         Application app = repository.findById(id).orElseThrow(() -> new ApplicationNotFoundException("Application not found with ID: " + id));
+
+        if (app.getStatus() == ApplicationStatus.REJECTED && app.getReason().equals(rejectDTO.getReason())) {
+            return app;
+        }
 
         if (app.getStatus() != ApplicationStatus.VERIFIED && app.getStatus() != ApplicationStatus.ACCEPTED) {
             throw new InvalidApplicationStatusException("Can only reject applications with status VERIFIED or ACCEPTED");
@@ -76,14 +79,18 @@ public class ApplicationService {
         saveHistory(savedApp, ApplicationStatus.REJECTED);
         return savedApp;
     }
-
     @Transactional
     public void deleteApplication(Long id, RejectDeleteDTO deleteDTO) {
         Application app = repository.findById(id).orElseThrow(() -> new ApplicationNotFoundException("Application not found with ID: " + id));
 
+        if (app.getStatus() == ApplicationStatus.DELETED) {
+            return;
+        }
+
         if (app.getStatus() != ApplicationStatus.CREATED) {
             throw new InvalidApplicationStatusException("Application can only be deleted in the CREATED status.");
         }
+
         if (deleteDTO.getReason() == null || deleteDTO.getReason().trim().isEmpty()) {
             throw new IllegalArgumentException("A reason must be provided for deleting an application. Please provide a valid reason in the 'reason' field.");
         }
@@ -93,11 +100,14 @@ public class ApplicationService {
         repository.save(app);
         saveHistory(app, ApplicationStatus.DELETED);
     }
-
     @Transactional
     public Application verifyApplication(Long id) {
         Application app = repository.findById(id)
                 .orElseThrow(() -> new ApplicationNotFoundException("Application not found with ID: " + id));
+
+        if (app.getStatus() == ApplicationStatus.VERIFIED) {
+            return app;
+        }
 
         if (app.getStatus() != ApplicationStatus.CREATED) {
             throw new InvalidApplicationStatusException("Application can only be verified in the CREATED status.");
@@ -108,11 +118,14 @@ public class ApplicationService {
         saveHistory(savedApp, ApplicationStatus.VERIFIED);
         return savedApp;
     }
-
     @Transactional
     public Application acceptApplication(Long id) {
         Application app = repository.findById(id)
                 .orElseThrow(() -> new ApplicationNotFoundException("Application not found with ID: " + id));
+
+        if (app.getStatus() == ApplicationStatus.ACCEPTED) {
+            return app;
+        }
 
         if (app.getStatus() != ApplicationStatus.VERIFIED) {
             throw new InvalidApplicationStatusException("Application can only be accepted in the VERIFIED status.");
@@ -128,7 +141,6 @@ public class ApplicationService {
         Pageable pageable = PageRequest.of(page, size);
         return repository.findByNameContainingAndStatus(name, status, pageable);
     }
-
     @Transactional
     public Application publishApplication(Long id) {
         Application app = repository.findById(id)
