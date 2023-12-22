@@ -26,9 +26,9 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
-    @ExceptionHandler(ApplicationAlreadyPublishedException.class)
-    public ResponseEntity<ErrorResponse> handleApplicationAlreadyPublishedException(ApplicationAlreadyPublishedException ex) {
-        ErrorResponse error = new ErrorResponse(LocalDateTime.now(), ex.getMessage(), "Application Already Published");
+    @ExceptionHandler(ApplicationAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleApplicationAlreadyExistsException(ApplicationAlreadyExistsException ex) {
+        ErrorResponse error = new ErrorResponse(LocalDateTime.now(), ex.getMessage(), "Application Already Exists");
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
@@ -42,6 +42,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleInvalidInputException(InvalidInputException ex) {
         ErrorResponse error = new ErrorResponse(LocalDateTime.now(), ex.getMessage(), "Invalid Input");
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(DatabaseOperationException.class)
+    public ResponseEntity<ErrorResponse> handleDatabaseOperationException(DatabaseOperationException ex) {
+        ErrorResponse error = new ErrorResponse(LocalDateTime.now(), ex.getMessage(), "Database Operation Error");
+        return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

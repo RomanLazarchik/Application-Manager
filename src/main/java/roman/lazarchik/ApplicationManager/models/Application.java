@@ -1,5 +1,6 @@
 package roman.lazarchik.ApplicationManager.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -31,6 +32,7 @@ public class Application {
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "application_id")
     @JsonManagedReference
+    @JsonIgnore
     private List<ApplicationHistory> histories = new ArrayList<>();
 
     private Integer publishedNumber;

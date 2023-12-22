@@ -13,8 +13,17 @@ import java.util.Optional;
 public interface ApplicationRepository extends JpaRepository<Application, Long> {
     Page<Application> findByNameContainingAndStatus(String name, ApplicationStatus status, Pageable pageable);
 
-    @Query("SELECT MAX(a.publishedNumber) FROM Application a")
+    Page<Application> findByNameContaining(String name, Pageable pageable);
+
+    Page<Application> findByStatus(ApplicationStatus status, Pageable pageable);
+
+    @Query("SELECT MAX(a.publishedNumber) FROM Application a WHERE a.status = 'PUBLISHED'")
     Optional<Integer> findMaxPublishedNumber();
+
+    Application findByNameAndContent(String name, String content);
+
+    boolean existsByNameAndContent(String name, String content);
+
 }
 
 

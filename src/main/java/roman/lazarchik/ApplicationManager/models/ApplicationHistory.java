@@ -23,6 +23,8 @@ public class ApplicationHistory {
     @Enumerated(EnumType.STRING)
     private ApplicationStatus status;
 
+    private boolean contentUpdated;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JsonBackReference
     private Application application;

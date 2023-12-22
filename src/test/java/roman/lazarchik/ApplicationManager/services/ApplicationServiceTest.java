@@ -2,11 +2,12 @@ package roman.lazarchik.ApplicationManager.services;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import roman.lazarchik.ApplicationManager.dto.RejectDeleteDTO;
+import roman.lazarchik.ApplicationManager.dto.DeleteDTO;
+import roman.lazarchik.ApplicationManager.dto.RejectDTO;
 import roman.lazarchik.ApplicationManager.exceptions.*;
 import roman.lazarchik.ApplicationManager.models.Application;
 import roman.lazarchik.ApplicationManager.models.ApplicationHistory;
@@ -23,6 +24,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @SpringBootTest
+@AutoConfigureMockMvc
 class ApplicationServiceTest {
 
     @Autowired
@@ -35,388 +37,699 @@ class ApplicationServiceTest {
     private ApplicationHistoryService applicationHistoryService;
 
     @Test
-    void whenCreateApplicationWithValidInput_thenApplicationIsCreated() {
-
+    void whenCreateApplicationWithValidInputThenApplicationIsCreated() {
+        // Given
         Application app = new Application();
-        app.setName("Test App");
-        app.setContent("Test Content");
-        when(applicationRepository.save(any(Application.class))).thenReturn(app);
+        app.setName("Name");
+        app.setContent("Content");
 
+        when(applicationRepository.save(any())).thenReturn(app);
+        // When
         Application createdApp = applicationService.createApplication(app);
+        // Then
+        assertEquals("Name", createdApp.getName());
+        assertEquals("Content", createdApp.getContent());
+        assertEquals(ApplicationStatus.CREATED, createdApp.getStatus());
 
-        assertEquals("Test App", createdApp.getName());
-        assertEquals("Test Content", createdApp.getContent());
-        Mockito.verify(applicationRepository).save(any(Application.class));
+        verify(applicationRepository, times(1)).save(any());
+        verify(applicationHistoryService, times(1)).saveHistory(any());
     }
 
-
     @Test
-    void whenCreateApplication_thenHistoryIsSaved() {
-
+    void whenCreateApplicationThenHistoryIsSaved() {
+        // Given
         Application app = new Application();
-        app.setName("Test App");
-        app.setContent("Test Content");
+        app.setName("Name");
+        app.setContent("Content");
 
-        ArgumentCaptor<ApplicationHistory> historyCaptor = ArgumentCaptor.forClass(ApplicationHistory.class);
-
-        when(applicationRepository.save(any(Application.class))).thenReturn(app);
-
+        when(applicationRepository.save(any())).thenReturn(app);
+        // When
         applicationService.createApplication(app);
+        // Then
+        ArgumentCaptor<ApplicationHistory> historyCaptor = ArgumentCaptor.forClass(ApplicationHistory.class);
+        verify(applicationHistoryService).saveHistory(historyCaptor.capture());
 
-        Mockito.verify(applicationHistoryService).saveHistory(historyCaptor.capture());
         ApplicationHistory capturedHistory = historyCaptor.getValue();
+
         assertEquals(ApplicationStatus.CREATED, capturedHistory.getStatus());
         assertNotNull(capturedHistory.getTimestamp());
+
+        verify(applicationRepository, times(1)).save(any());
     }
 
     @Test
-    void whenCreateApplicationWithInvalidData_thenThrowInvalidInputException() {
+    void whenCreateApplicationWithInvalidDataThenThrowInvalidInputException() {
 
         Application app = new Application();
         app.setName("");
         app.setContent(" ");
 
-        assertThrows(InvalidInputException.class, () -> {
-            applicationService.createApplication(app);
-        });
+        assertThrows(InvalidInputException.class, () -> applicationService.createApplication(app));
+
+        verify(applicationRepository, never()).save(any(Application.class));
     }
 
     @Test
-    void whenCreateApplicationWithMissingName_thenThrowInvalidInputException() {
+    void whenCreateApplicationWithMissingNameThenThrowInvalidInputException() {
 
         Application app = new Application();
-        app.setContent("Test Content");
+        app.setContent("Content");
 
-        assertThrows(InvalidInputException.class, () -> {
-            applicationService.createApplication(app);
-        });
+        assertThrows(InvalidInputException.class, () -> applicationService.createApplication(app));
+
+        verify(applicationRepository, never()).save(any(Application.class));
     }
 
     @Test
-    void whenCreateApplicationWithMissingContent_thenThrowInvalidInputException() {
+    void whenCreateApplicationWithMissingContentThenThrowInvalidInputException() {
 
         Application app = new Application();
-        app.setName("Test App");
+        app.setName("Name");
 
-        assertThrows(InvalidInputException.class, () -> {
-            applicationService.createApplication(app);
-        });
+        assertThrows(InvalidInputException.class, () -> applicationService.createApplication(app));
+
+        verify(applicationRepository, never()).save(any(Application.class));
     }
 
     @Test
-    public void updateContent_SuccessfulUpdate_ReturnsUpdatedApplication() {
+     void whenCreateApplicationAlreadyExists() {
 
-        Long applicationId = 1L;
+        Application app = new Application();
+        app.setName("Name");
+        app.setContent("Content");
+
+        when(applicationRepository.findByNameAndContent("Name", "Content")).thenReturn(app);
+
+        Application newApp = new Application();
+        newApp.setName("Name");
+        newApp.setContent("Content");
+
+        Application result = applicationService.createApplication(newApp);
+
+        verify(applicationRepository, times(1)).findByNameAndContent("Name", "Content");
+        verify(applicationRepository, never()).save(any(Application.class));
+        assertEquals(app, result);
+    }
+
+    @Test
+    void whenUpdateContentSuccessfulUpdateAndReturnsUpdatedApplication() {
+
+        long someId = 1L;
         String newContent = "New Content";
-        Application existingApplication = new Application();
-        existingApplication.setId(applicationId);
-        existingApplication.setContent("Old Content");
-        existingApplication.setStatus(ApplicationStatus.CREATED);
 
-        when(applicationRepository.findById(applicationId)).thenReturn(Optional.of(existingApplication));
-        when(applicationRepository.save(any(Application.class))).thenReturn(existingApplication);
+        Application app = new Application();
+        app.setId(someId);
+        app.setContent("Content");
+        app.setStatus(ApplicationStatus.CREATED);
 
-        Application updatedApplication = applicationService.updateContent(applicationId, newContent);
+        when(applicationRepository.findById(someId)).thenReturn(Optional.of(app));
+        when(applicationRepository.save(any(Application.class))).thenReturn(app);
+
+        Application updatedApplication = applicationService.updateContent(someId, newContent);
 
         assertThat(updatedApplication.getContent()).isEqualTo(newContent);
         verify(applicationRepository).save(any(Application.class));
     }
 
     @Test
-    public void updateContent_ApplicationNotFound_ThrowsException() {
-        Long applicationId = 1L;
+    void whenUpdateContentThrowsExceptionApplicationNotFound() {
+
+        long someId = 1L;
         String newContent = "New Content";
 
-        when(applicationRepository.findById(applicationId)).thenReturn(Optional.empty());
+        when(applicationRepository.findById(someId)).thenReturn(Optional.empty());
 
-        assertThrows(ApplicationNotFoundException.class, () -> {
-            applicationService.updateContent(applicationId, newContent);
-        });
+        assertThrows(ApplicationNotFoundException.class, () -> applicationService.updateContent(someId, newContent));
 
         verify(applicationRepository, never()).save(any(Application.class));
     }
 
     @Test
-    public void updateContent_ContentEditNotAllowed_ThrowsException() {
-        Long applicationId = 1L;
+    void whenUpdateContentThrowsExceptionContentEditNotAllowed() {
+
+        long someId = 1L;
         String newContent = "New Content";
-        Application existingApplication = new Application();
-        existingApplication.setId(applicationId);
-        existingApplication.setContent("Old Content");
-        existingApplication.setStatus(ApplicationStatus.PUBLISHED);
 
-        when(applicationRepository.findById(applicationId)).thenReturn(Optional.of(existingApplication));
+        Application app = new Application();
+        app.setId(someId);
+        app.setContent("Content");
+        app.setStatus(ApplicationStatus.PUBLISHED);
 
-        assertThrows(ContentEditNotAllowedException.class, () -> {
-            applicationService.updateContent(applicationId, newContent);
-        });
+        when(applicationRepository.findById(someId)).thenReturn(Optional.of(app));
+
+        assertThrows(ContentEditNotAllowedException.class, () -> applicationService.updateContent(someId, newContent));
 
         verify(applicationRepository, never()).save(any(Application.class));
     }
 
     @Test
-    void rejectApplication_SuccessfulRejection_ReturnsRejectedApplication() {
+    void whenUpdateContentWithNoChange() {
 
-        Long applicationId = 1L;
-        RejectDeleteDTO rejectDTO = new RejectDeleteDTO("Valid Reason");
-        Application existingApplication = new Application();
-        existingApplication.setId(applicationId);
-        existingApplication.setStatus(ApplicationStatus.VERIFIED);
+        long someId = 1L;
+        String newContent = "Original Content";
 
-        when(applicationRepository.findById(applicationId)).thenReturn(Optional.of(existingApplication));
-        when(applicationRepository.save(any(Application.class))).thenReturn(existingApplication);
+        Application app = new Application();
+        app.setId(someId);
+        app.setContent("Original Content");
+        app.setStatus(ApplicationStatus.CREATED);
 
-        Application rejectedApplication = applicationService.rejectApplication(applicationId, rejectDTO);
+        when(applicationRepository.findById(someId)).thenReturn(Optional.of(app));
+        when(applicationRepository.save(any(Application.class))).thenReturn(app);
+
+        Application updatedApplication = applicationService.updateContent(someId, newContent);
+
+        assertEquals(app.getId(), updatedApplication.getId());
+        assertEquals("Original Content", updatedApplication.getContent());
+
+        verify(applicationRepository, never()).save(any(Application.class));
+    }
+    @Test
+    public void whenUpdateContentThenHistoryIsSave() {
+
+        long someId = 1L;
+        String newContent = "New Content";
+
+        Application app = new Application();
+        app.setId(someId);
+        app.setContent("Content");
+        app.setStatus(ApplicationStatus.CREATED);
+
+        when(applicationRepository.findById(someId)).thenReturn(Optional.of(app));
+        when(applicationRepository.save(any(Application.class))).thenReturn(app);
+
+        applicationService.updateContent(someId, newContent);
+
+        ArgumentCaptor<ApplicationHistory> historyCaptor = ArgumentCaptor.forClass(ApplicationHistory.class);
+        verify(applicationHistoryService).saveHistory(historyCaptor.capture());
+
+        ApplicationHistory capturedHistory = historyCaptor.getValue();
+
+        assertEquals(someId, capturedHistory.getApplication().getId());
+        assertTrue(capturedHistory.isContentUpdated());
+        assertNotNull(capturedHistory.getTimestamp());
+        assertEquals(ApplicationStatus.CREATED, capturedHistory.getStatus());
+
+        verify(applicationRepository, times(1)).save(any());
+    }
+
+    @Test
+    void whenRejectApplicationSuccessfulRejectionReturnsRejectedApplication() {
+
+        long someId = 1L;
+        RejectDTO reasonReject = new RejectDTO("Reason");
+
+        Application app = new Application();
+        app.setId(someId);
+        app.setStatus(ApplicationStatus.VERIFIED);
+
+        when(applicationRepository.findById(someId)).thenReturn(Optional.of(app));
+        when(applicationRepository.save(any(Application.class))).thenReturn(app);
+
+        Application rejectedApplication = applicationService.rejectApplication(someId, reasonReject);
 
         assertThat(rejectedApplication.getStatus()).isEqualTo(ApplicationStatus.REJECTED);
-        assertThat(rejectedApplication.getReason()).isEqualTo(rejectDTO.getReason());
+        assertThat(rejectedApplication.getReason()).isEqualTo(reasonReject.getReason());
+
         verify(applicationRepository).save(any(Application.class));
     }
 
     @Test
-    void rejectApplication_ApplicationNotFound_ThrowsException() {
-        Long applicationId = 1L;
-        RejectDeleteDTO rejectDTO = new RejectDeleteDTO("Valid Reason");
+    void whenRejectApplicationThrowsExceptionApplicationNotFound() {
 
-        when(applicationRepository.findById(applicationId)).thenReturn(Optional.empty());
+        long someId = 1L;
+        RejectDTO reasonReject = new RejectDTO("Reason");
 
-        assertThrows(ApplicationNotFoundException.class, () -> {
-            applicationService.rejectApplication(applicationId, rejectDTO);
-        });
+        when(applicationRepository.findById(someId)).thenReturn(Optional.empty());
 
-        verify(applicationRepository, never()).save(any(Application.class));
-    }
-
-    @Test
-    void rejectApplication_InvalidApplicationStatus_ThrowsException() {
-        Long applicationId = 1L;
-        RejectDeleteDTO rejectDTO = new RejectDeleteDTO("Valid Reason");
-        Application existingApplication = new Application();
-        existingApplication.setId(applicationId);
-        existingApplication.setStatus(ApplicationStatus.PUBLISHED);
-
-        when(applicationRepository.findById(applicationId)).thenReturn(Optional.of(existingApplication));
-
-        assertThrows(InvalidApplicationStatusException.class, () -> {
-            applicationService.rejectApplication(applicationId, rejectDTO);
-        });
+        assertThrows(ApplicationNotFoundException.class, () -> applicationService.rejectApplication(someId, reasonReject));
 
         verify(applicationRepository, never()).save(any(Application.class));
     }
 
     @Test
-    public void testDeleteApplication_Success() {
-        Long applicationId = 1L;
+    void whenRejectApplicationThrowsExceptionInvalidApplicationStatus() {
+
+        long someId = 1L;
+        RejectDTO reasonReject = new RejectDTO("Reason");
+
         Application app = new Application();
-        app.setId(applicationId);
-        app.setStatus(ApplicationStatus.CREATED);
-        when(applicationRepository.findById(applicationId)).thenReturn(Optional.of(app));
+        app.setId(someId);
+        app.setStatus(ApplicationStatus.PUBLISHED);
 
-        applicationService.deleteApplication(applicationId, new RejectDeleteDTO("Test reason"));
+        when(applicationRepository.findById(someId)).thenReturn(Optional.of(app));
+
+        assertThrows(InvalidApplicationStatusException.class, () -> applicationService.rejectApplication(someId, reasonReject));
+
+        verify(applicationRepository, never()).save(any(Application.class));
+    }
+
+    @Test
+    void whenRejectApplicationShouldThrowIllegalArgumentException() {
+
+        long someId = 1L;
+        RejectDTO reasonReject = new RejectDTO(" ");
+
+        Application app = new Application();
+        app.setId(someId);
+        app.setStatus(ApplicationStatus.VERIFIED);
+
+        when(applicationRepository.findById(someId)).thenReturn(Optional.of(app));
+
+        assertThrows(IllegalArgumentException.class, () -> applicationService.rejectApplication(someId, reasonReject),
+                "A reason must be provided for rejecting an application. Please provide a valid reason in the 'reason' field.");
+
+        verify(applicationRepository, never()).save(any(Application.class));
+    }
+
+    @Test
+    public void whenRejectApplicationThenHistoryIsSave() {
+
+        long someId = 1L;
+        RejectDTO rejectDTO = new RejectDTO("Reason");
+
+        Application app = new Application();
+        app.setId(someId);
+        app.setStatus(ApplicationStatus.ACCEPTED);
+
+        when(applicationRepository.findById(someId)).thenReturn(Optional.of(app));
+        when(applicationRepository.save(any(Application.class))).thenReturn(app);
+
+        ArgumentCaptor<ApplicationHistory> historyArgumentCaptor = ArgumentCaptor.forClass(ApplicationHistory.class);
+
+        applicationService.rejectApplication(someId, rejectDTO);
+
+        verify(applicationHistoryService).saveHistory(historyArgumentCaptor.capture());
+        ApplicationHistory capturedHistory = historyArgumentCaptor.getValue();
+
+        assertNotNull(capturedHistory.getTimestamp());
+        assertEquals(ApplicationStatus.REJECTED, capturedHistory.getStatus());
+        assertEquals(app, capturedHistory.getApplication());
+        assertFalse(capturedHistory.isContentUpdated());
+        assertEquals(someId, capturedHistory.getApplication().getId());
+
+        verify(applicationRepository, times(1)).save(any());
+    }
+
+    @Test
+    void whenDeleteApplicationSuccess() {
+
+        long someId = 1L;
+        DeleteDTO reasonDelete = new DeleteDTO("Reason");
+
+        Application app = new Application();
+        app.setId(someId);
+        app.setStatus(ApplicationStatus.CREATED);
+
+        when(applicationRepository.findById(someId)).thenReturn(Optional.of(app));
+
+        applicationService.deleteApplication(someId, reasonDelete);
 
         assertEquals(ApplicationStatus.DELETED, app.getStatus());
-        verify(applicationRepository).save(app);
+
+        verify(applicationRepository, times(1)).save(any());
     }
 
     @Test
-    public void testDeleteApplication_NotFound() {
-        Long applicationId = 1L;
-        when(applicationRepository.findById(applicationId)).thenReturn(Optional.empty());
+    void whenDeleteApplicationThrowsExceptionApplicationNotFound() {
 
-        assertThrows(ApplicationNotFoundException.class, () ->
-                applicationService.deleteApplication(applicationId, new RejectDeleteDTO("Test reason"))
-        );
+        long someId = 1L;
+        DeleteDTO reasonDelete = new DeleteDTO("Reason");
+
+        when(applicationRepository.findById(someId)).thenReturn(Optional.empty());
+
+        assertThrows(ApplicationNotFoundException.class, () -> applicationService.deleteApplication(someId, reasonDelete));
+
+        verify(applicationRepository, never()).save(any(Application.class));
     }
 
     @Test
-    public void testDeleteApplication_InvalidStatus() {
-        Long applicationId = 1L;
+    void whenDeleteApplicationThrowsExceptionInvalidStatus() {
+
+        long someId = 1L;
+        DeleteDTO reasonDelete = new DeleteDTO("Reason");
+
         Application app = new Application();
-        app.setId(applicationId);
+        app.setId(someId);
         app.setStatus(ApplicationStatus.PUBLISHED);
-        when(applicationRepository.findById(applicationId)).thenReturn(Optional.of(app));
 
-        assertThrows(InvalidApplicationStatusException.class, () ->
-                applicationService.deleteApplication(applicationId, new RejectDeleteDTO("Test reason"))
-        );
+        when(applicationRepository.findById(someId)).thenReturn(Optional.of(app));
+
+        assertThrows(InvalidApplicationStatusException.class, () -> applicationService.deleteApplication(someId, reasonDelete));
+
+        verify(applicationRepository, never()).save(any(Application.class));
     }
 
     @Test
-    void verifyApplication_SuccessfulVerification_ReturnsVerifiedApplication() {
+    void whenDeleteApplicationThrowsInvalidApplicationStatusException() {
 
-        Long applicationId = 1L;
-        Application existingApplication = new Application();
-        existingApplication.setId(applicationId);
-        existingApplication.setStatus(ApplicationStatus.CREATED);
+        long someId = 1L;
+        DeleteDTO reasonDelete = new DeleteDTO("Reason");
 
-        when(applicationRepository.findById(applicationId)).thenReturn(Optional.of(existingApplication));
-        when(applicationRepository.save(any(Application.class))).thenReturn(existingApplication);
+        Application application = new Application();
+        application.setId(someId);
+        application.setStatus(ApplicationStatus.VERIFIED);
 
-        Application verifiedApplication = applicationService.verifyApplication(applicationId);
+        when(applicationRepository.findById(someId)).thenReturn(Optional.of(application));
+
+        assertThrows(InvalidApplicationStatusException.class, () -> applicationService.deleteApplication(someId, reasonDelete));
+
+        verify(applicationRepository, never()).save(any(Application.class));
+    }
+
+    @Test
+    void whenDeletingAlreadyDeletedApplicationThenNoChangesMade() {
+
+        long someId = 1L;
+        DeleteDTO reasonDelete = new DeleteDTO("Reason");
+
+        Application app = new Application();
+        app.setId(someId);
+        app.setStatus(ApplicationStatus.DELETED);
+
+        when(applicationRepository.findById(someId)).thenReturn(Optional.of(app));
+
+        applicationService.deleteApplication(someId, reasonDelete);
+
+        verify(applicationRepository, times(1)).findById(someId);
+
+        assertEquals(ApplicationStatus.DELETED, app.getStatus());
+
+        verify(applicationRepository, never()).save(any(Application.class));
+    }
+
+    @Test
+    public void whenDeleteApplicationThenHistoryIsSave() {
+
+        long someId = 1L;
+        DeleteDTO reasonDelete = new DeleteDTO("Reason");
+
+        Application app = new Application();
+        app.setId(someId);
+        app.setStatus(ApplicationStatus.CREATED);
+
+        when(applicationRepository.findById(someId)).thenReturn(Optional.of(app));
+        when(applicationRepository.save(any(Application.class))).thenReturn(app);
+
+        ArgumentCaptor<ApplicationHistory> historyCaptor = ArgumentCaptor.forClass(ApplicationHistory.class);
+
+        applicationService.deleteApplication(someId, reasonDelete);
+
+        verify(applicationHistoryService).saveHistory(historyCaptor.capture());
+        ApplicationHistory capturedHistory = historyCaptor.getValue();
+
+        assertEquals(ApplicationStatus.DELETED, capturedHistory.getStatus());
+        assertEquals(someId, capturedHistory.getApplication().getId());
+        assertNotNull(capturedHistory.getTimestamp());
+        assertEquals(app, capturedHistory.getApplication());
+
+        verify(applicationRepository, times(1)).save(any());
+    }
+
+    @Test
+    void whenVerifyApplicationSuccessfulVerificationReturnsVerifiedApplication() {
+
+        long someId = 1L;
+
+        Application app = new Application();
+        app.setId(someId);
+        app.setStatus(ApplicationStatus.CREATED);
+
+        when(applicationRepository.findById(someId)).thenReturn(Optional.of(app));
+        when(applicationRepository.save(any(Application.class))).thenReturn(app);
+
+        Application verifiedApplication = applicationService.verifyApplication(someId);
 
         assertThat(verifiedApplication.getStatus()).isEqualTo(ApplicationStatus.VERIFIED);
-        verify(applicationRepository).save(any(Application.class));
-        verify(applicationHistoryService).saveHistory(any(ApplicationHistory.class));
+        assertThat(verifiedApplication.getContent()).isEqualTo(app.getContent());
+
+        verify(applicationRepository, times(1)).save(any());
+        verify(applicationHistoryService, times(1)).saveHistory(any());
+
     }
 
     @Test
-    void verifyApplication_ApplicationNotFound_ThrowsException() {
-        Long applicationId = 1L;
+    void whenVerifyApplicationThrowsExceptionApplicationNotFound() {
 
-        when(applicationRepository.findById(applicationId)).thenReturn(Optional.empty());
+        long someId = 1L;
 
-        assertThrows(ApplicationNotFoundException.class, () -> {
-            applicationService.verifyApplication(applicationId);
-        });
+        when(applicationRepository.findById(someId)).thenReturn(Optional.empty());
+
+        assertThrows(ApplicationNotFoundException.class, () -> applicationService.verifyApplication(someId));
 
         verify(applicationRepository, never()).save(any(Application.class));
     }
 
     @Test
-    void verifyApplication_InvalidApplicationStatus_ThrowsException() {
-        Long applicationId = 1L;
-        Application existingApplication = new Application();
-        existingApplication.setId(applicationId);
-        existingApplication.setStatus(ApplicationStatus.PUBLISHED);
+    void whenVerifyApplicationThrowsExceptionInvalidApplicationStatus() {
 
-        when(applicationRepository.findById(applicationId)).thenReturn(Optional.of(existingApplication));
+        long someId = 1L;
 
-        assertThrows(InvalidApplicationStatusException.class, () -> {
-            applicationService.verifyApplication(applicationId);
-        });
+        Application app = new Application();
+        app.setId(someId);
+        app.setStatus(ApplicationStatus.PUBLISHED);
+
+        when(applicationRepository.findById(someId)).thenReturn(Optional.of(app));
+
+        assertThrows(InvalidApplicationStatusException.class, () -> applicationService.verifyApplication(someId));
 
         verify(applicationRepository, never()).save(any(Application.class));
     }
 
     @Test
-    void acceptApplication_SuccessfulAcceptance_ReturnsAcceptedApplication() {
+    public void whenVerifyApplicationWithVerifiedStatus() {
 
-        Long applicationId = 1L;
-        Application existingApplication = new Application();
-        existingApplication.setId(applicationId);
-        existingApplication.setStatus(ApplicationStatus.VERIFIED);
+        long someId = 1L;
 
-        when(applicationRepository.findById(applicationId)).thenReturn(Optional.of(existingApplication));
-        when(applicationRepository.save(any(Application.class))).thenReturn(existingApplication);
+        Application app = new Application();
+        app.setId(someId);
+        app.setStatus(ApplicationStatus.VERIFIED);
 
-        Application acceptedApplication = applicationService.acceptApplication(applicationId);
+        when(applicationRepository.findById(someId)).thenReturn(Optional.of(app));
+
+        Application result = applicationService.verifyApplication(someId);
+
+        assertEquals(ApplicationStatus.VERIFIED, result.getStatus());
+        assertEquals(app.getId(), result.getId());
+
+        verify(applicationRepository, never()).save(any(Application.class));
+    }
+
+    @Test
+    public void whenVerifyApplicationThenHistoryIsSave() {
+
+        long someId = 1L;
+
+        Application app = new Application();
+        app.setId(someId);
+        app.setStatus(ApplicationStatus.CREATED);
+
+        when(applicationRepository.findById(someId)).thenReturn(Optional.of(app));
+        when(applicationRepository.save(any(Application.class))).thenReturn(app);
+
+        ArgumentCaptor<ApplicationHistory> historyCaptor = ArgumentCaptor.forClass(ApplicationHistory.class);
+
+        applicationService.verifyApplication(someId);
+
+        verify(applicationHistoryService).saveHistory(historyCaptor.capture());
+        ApplicationHistory capturedHistory = historyCaptor.getValue();
+
+        assertEquals(ApplicationStatus.VERIFIED, capturedHistory.getStatus());
+        assertEquals(someId, capturedHistory.getApplication().getId());
+        assertNotNull(capturedHistory.getTimestamp());
+        assertEquals(app, capturedHistory.getApplication());
+
+        verify(applicationRepository, times(1)).save(any());
+    }
+
+    @Test
+    void whenAcceptApplicationSuccessfulAcceptanceReturnsAcceptedApplication() {
+
+        long someId = 1L;
+
+        Application app = new Application();
+        app.setId(someId);
+        app.setStatus(ApplicationStatus.VERIFIED);
+
+        when(applicationRepository.findById(someId)).thenReturn(Optional.of(app));
+        when(applicationRepository.save(any(Application.class))).thenReturn(app);
+
+        Application acceptedApplication = applicationService.acceptApplication(someId);
 
         assertThat(acceptedApplication.getStatus()).isEqualTo(ApplicationStatus.ACCEPTED);
-        verify(applicationRepository).save(any(Application.class));
+
+        verify(applicationRepository, times(1)).save(any());
+        verify(applicationHistoryService, times(1)).saveHistory(any());
     }
 
     @Test
-    void acceptApplication_ApplicationNotFound_ThrowsException() {
-        Long applicationId = 1L;
+    void whenAcceptApplicationThrowsExceptionApplicationNotFound() {
 
-        when(applicationRepository.findById(applicationId)).thenReturn(Optional.empty());
+        long someId = 1L;
 
-        assertThrows(ApplicationNotFoundException.class, () -> {
-            applicationService.acceptApplication(applicationId);
-        });
+        when(applicationRepository.findById(someId)).thenReturn(Optional.empty());
+
+        assertThrows(ApplicationNotFoundException.class, () -> applicationService.acceptApplication(someId));
 
         verify(applicationRepository, never()).save(any(Application.class));
     }
 
     @Test
-    void acceptApplication_InvalidApplicationStatus_ThrowsException() {
-        Long applicationId = 1L;
-        Application existingApplication = new Application();
-        existingApplication.setId(applicationId);
-        existingApplication.setStatus(ApplicationStatus.CREATED);
+    void whenAcceptApplicationThrowsExceptionInvalidApplicationStatus() {
 
-        when(applicationRepository.findById(applicationId)).thenReturn(Optional.of(existingApplication));
+        long someId = 1L;
 
-        assertThrows(InvalidApplicationStatusException.class, () -> {
-            applicationService.acceptApplication(applicationId);
-        });
+        Application app = new Application();
+        app.setId(someId);
+        app.setStatus(ApplicationStatus.CREATED);
+
+        when(applicationRepository.findById(someId)).thenReturn(Optional.of(app));
+
+        assertThrows(InvalidApplicationStatusException.class, () -> applicationService.acceptApplication(someId));
 
         verify(applicationRepository, never()).save(any(Application.class));
     }
 
     @Test
-    public void testPublishApplication_Success() {
-        Long applicationId = 1L;
-        Application application = new Application();
-        application.setId(applicationId);
-        application.setStatus(ApplicationStatus.ACCEPTED);
+    public void whenAcceptApplicationWithAcceptedStatus() {
 
-        when(applicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
+        long someId = 1L;
+
+        Application app = new Application();
+        app.setId(someId);
+        app.setStatus(ApplicationStatus.ACCEPTED);
+
+        when(applicationRepository.findById(someId)).thenReturn(Optional.of(app));
+
+        Application result = applicationService.acceptApplication(someId);
+
+        assertEquals(ApplicationStatus.ACCEPTED, result.getStatus());
+        assertEquals(app.getId(), result.getId());
+
+        verify(applicationRepository, never()).save(any(Application.class));
+    }
+
+    @Test
+    public void whenAcceptApplicationThenHistoryIsSave() {
+
+        long someId = 1L;
+
+        Application app = new Application();
+        app.setId(someId);
+        app.setStatus(ApplicationStatus.VERIFIED);
+
+        when(applicationRepository.findById(someId)).thenReturn(Optional.of(app));
+        when(applicationRepository.save(any(Application.class))).thenReturn(app);
+
+        ArgumentCaptor<ApplicationHistory> historyCaptor = ArgumentCaptor.forClass(ApplicationHistory.class);
+
+        applicationService.acceptApplication(someId);
+
+        verify(applicationHistoryService).saveHistory(historyCaptor.capture());
+        ApplicationHistory capturedHistory = historyCaptor.getValue();
+
+        assertEquals(ApplicationStatus.ACCEPTED, capturedHistory.getStatus());
+        assertEquals(someId, capturedHistory.getApplication().getId());
+        assertNotNull(capturedHistory.getTimestamp());
+        assertEquals(app, capturedHistory.getApplication());
+
+        verify(applicationRepository, times(1)).save(any());
+    }
+    @Test
+    void whenPublishApplicationSuccessfulAcceptanceReturnsPublishedApplication() {
+
+        long someId = 1L;
+
+        Application app = new Application();
+        app.setId(someId);
+        app.setStatus(ApplicationStatus.ACCEPTED);
+
+        when(applicationRepository.findById(someId)).thenReturn(Optional.of(app));
         when(applicationRepository.findMaxPublishedNumber()).thenReturn(Optional.of(10));
         when(applicationRepository.save(any(Application.class))).then(returnsFirstArg());
 
-        Application publishedApplication = applicationService.publishApplication(applicationId);
+        Application publishedApplication = applicationService.publishApplication(someId);
 
         assertNotNull(publishedApplication);
         assertEquals(ApplicationStatus.PUBLISHED, publishedApplication.getStatus());
         assertEquals(11, publishedApplication.getPublishedNumber().intValue());
 
-        verify(applicationRepository).save(any(Application.class));
+        verify(applicationRepository, times(1)).save(any());
+        verify(applicationHistoryService, times(1)).saveHistory(any());
     }
 
     @Test
-    public void testPublishApplication_AlreadyPublishedException() {
-        Long applicationId = 1L;
-        Application application = new Application();
-        application.setId(applicationId);
-        application.setStatus(ApplicationStatus.PUBLISHED);
+    void whenPublishApplicationThrowsExceptionApplicationNotFound() {
 
-        when(applicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
+        long someId = 1L;
 
-        assertThrows(ApplicationAlreadyPublishedException.class, () -> {
-            applicationService.publishApplication(applicationId);
-        });
+        when(applicationRepository.findById(someId)).thenReturn(Optional.empty());
+
+        assertThrows(ApplicationNotFoundException.class, () -> applicationService.acceptApplication(someId));
+
+        verify(applicationRepository, never()).save(any(Application.class));
     }
 
     @Test
-    public void testPublishApplication_NotFoundException() {
-        Long applicationId = 1L;
+    void whenPublishApplicationThrowsExceptionInvalidApplicationStatus() {
 
-        when(applicationRepository.findById(applicationId)).thenReturn(Optional.empty());
+        long someId = 1L;
 
-        assertThrows(ApplicationNotFoundException.class, () -> {
-            applicationService.publishApplication(applicationId);
-        });
+        Application app = new Application();
+        app.setId(someId);
+        app.setStatus(ApplicationStatus.CREATED);
+
+        when(applicationRepository.findById(someId)).thenReturn(Optional.of(app));
+
+        assertThrows(InvalidApplicationStatusException.class, () -> applicationService.acceptApplication(someId));
+
+        verify(applicationRepository, never()).save(any(Application.class));
     }
 
     @Test
-    public void testPublishApplication_RepositoryInteraction() {
-        Long applicationId = 1L;
-        Application application = new Application();
-        application.setId(applicationId);
-        application.setStatus(ApplicationStatus.ACCEPTED);
+    public void whenPublishApplicationWithPublishedStatus() {
 
-        when(applicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
-        when(applicationRepository.findMaxPublishedNumber()).thenReturn(Optional.of(10));
-        when(applicationRepository.save(any(Application.class))).then(returnsFirstArg());
+        long someId = 1L;
 
-        applicationService.publishApplication(applicationId);
+        Application app = new Application();
+        app.setId(someId);
+        app.setStatus(ApplicationStatus.PUBLISHED);
 
-        verify(applicationRepository).findMaxPublishedNumber();
-        verify(applicationRepository).save(any(Application.class));
+        when(applicationRepository.findById(someId)).thenReturn(Optional.of(app));
+
+        Application result = applicationService.publishApplication(someId);
+
+        assertEquals(ApplicationStatus.PUBLISHED, result.getStatus());
+        assertEquals(app.getId(), result.getId());
+
+        verify(applicationRepository, never()).save(any(Application.class));
     }
 
     @Test
-    void whenUpdateApplicationContent_thenHistoryIsSaved() {
-        Long applicationId = 1L;
-        String newContent = "New Content";
-        Application existingApplication = new Application();
-        existingApplication.setId(applicationId);
-        existingApplication.setContent("Old Content");
-        existingApplication.setStatus(ApplicationStatus.CREATED);
+    public void whenPublishApplicationThenHistoryIsSave() {
 
-        when(applicationRepository.findById(applicationId)).thenReturn(Optional.of(existingApplication));
-        when(applicationRepository.save(any(Application.class))).thenReturn(existingApplication);
+        long someId = 1L;
+
+        Application app = new Application();
+        app.setId(someId);
+        app.setStatus(ApplicationStatus.ACCEPTED);
+
+        when(applicationRepository.findById(someId)).thenReturn(Optional.of(app));
+        when(applicationRepository.save(any(Application.class))).thenReturn(app);
 
         ArgumentCaptor<ApplicationHistory> historyCaptor = ArgumentCaptor.forClass(ApplicationHistory.class);
 
-        applicationService.updateContent(applicationId, newContent);
+        applicationService.publishApplication(someId);
 
         verify(applicationHistoryService).saveHistory(historyCaptor.capture());
         ApplicationHistory capturedHistory = historyCaptor.getValue();
 
-        assertEquals(ApplicationStatus.CREATED, capturedHistory.getStatus());
-        assertEquals(existingApplication, capturedHistory.getApplication());
+        assertEquals(ApplicationStatus.PUBLISHED, capturedHistory.getStatus());
+        assertEquals(someId, capturedHistory.getApplication().getId());
         assertNotNull(capturedHistory.getTimestamp());
+        assertEquals(app, capturedHistory.getApplication());
+        assertFalse(capturedHistory.isContentUpdated());
+
+        verify(applicationRepository, times(1)).save(any());
     }
+
 }

@@ -9,8 +9,8 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class RejectDeleteDTO {
-    @NotBlank(message = "Reason must not be blank")
+public class DeleteDTO {
+    @NotBlank(message = "Reason must not be empty")
     @Size(max = 255, message = "Reason must not exceed 255 characters")
     private String reason;
 }
