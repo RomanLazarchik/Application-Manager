@@ -6,6 +6,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.dao.DataAccessException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import roman.lazarchik.ApplicationManager.dto.ApplicationDTO;
 import roman.lazarchik.ApplicationManager.dto.DeleteDTO;
 import roman.lazarchik.ApplicationManager.dto.RejectDTO;
 import roman.lazarchik.ApplicationManager.exceptions.*;
@@ -16,7 +22,7 @@ import roman.lazarchik.ApplicationManager.repositories.ApplicationRepository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Optional;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.AdditionalAnswers.returnsFirstArg;
@@ -731,5 +737,231 @@ class ApplicationServiceTest {
 
         verify(applicationRepository, times(1)).save(any());
     }
+    @Test
+    public void whenGetApplicationsByNameAndStatusWithValidInput() {
 
-}
+        Application app1 = new Application(1L, "Name1", "Content1", ApplicationStatus.CREATED, null, null, 0);
+        Application app2 = new Application(2L, "Name2", "Content2", ApplicationStatus.CREATED, null, null, 0);
+        List<Application> applications = Arrays.asList(app1, app2);
+
+        Page<Application> expectedPage = new PageImpl<>(applications);
+
+        when(applicationRepository.findByNameContainingAndStatus(anyString(), any(ApplicationStatus.class), any(PageRequest.class)))
+                .thenReturn(expectedPage);
+
+        Page<Application> resultPage = applicationService.getApplicationsByNameAndStatus("Name", ApplicationStatus.CREATED, 0, 10);
+
+        assertEquals(2, resultPage.getTotalElements());
+        verify(applicationRepository, times(1)).findByNameContainingAndStatus(anyString(), any(ApplicationStatus.class), any(PageRequest.class));
+    }
+    @Test
+    void whenGetApplicationsByNameAndStatusThrowsExceptionApplicationNotFound() {
+
+        when(applicationRepository.findByNameContainingAndStatus(anyString(), any(ApplicationStatus.class), any(PageRequest.class)))
+                .thenThrow(new ApplicationNotFoundException("No applications found with the provided name and status"));
+
+        assertThrows(ApplicationNotFoundException.class, () ->
+                        applicationService.getApplicationsByNameAndStatus("Name", ApplicationStatus.CREATED, 0, 10),
+                "Expected ApplicationNotFoundException to be thrown when no applications are found");
+
+        verify(applicationRepository, times(1)).findByNameContainingAndStatus(anyString(), any(ApplicationStatus.class), any(PageRequest.class));
+    }
+
+    @Test
+    void whenGetApplicationsByNameAndStatusThrowsExceptionInvalidInput() {
+
+        assertThrows(InvalidInputException.class, () ->
+                        applicationService.getApplicationsByNameAndStatus(" ", ApplicationStatus.CREATED, 0, 10),
+                "Name parameter must not be empty");
+
+        verify(applicationRepository, never()).findByNameContainingAndStatus(anyString(), any(ApplicationStatus.class), any(PageRequest.class));
+    }
+    @Test
+    public void whenGetApplicationsByNameAndStatusThrowsExceptionDatabaseOperation() {
+
+        when(applicationRepository.findByNameContainingAndStatus(anyString(), any(ApplicationStatus.class), any(PageRequest.class)))
+                .thenThrow(new DataAccessException("Test exception") {});
+
+        assertThrows(DatabaseOperationException.class, () ->
+            applicationService.getApplicationsByNameAndStatus("Name", ApplicationStatus.CREATED, 0, 10));
+
+        verify(applicationRepository, times(1)).findByNameContainingAndStatus(anyString(), any(ApplicationStatus.class), any(PageRequest.class));
+    }
+
+    @Test
+    public void whenGetApplicationsByNameWithValidInput() {
+
+        Application app1 = new Application(1L, "Name1", "Content1", ApplicationStatus.CREATED, null, null, 0);
+        Application app2 = new Application(2L, "Name2", "Content2", ApplicationStatus.CREATED, null, null, 0);
+        List<Application> applications = Arrays.asList(app1, app2);
+
+        Page<Application> expectedPage = new PageImpl<>(applications);
+
+        when(applicationRepository.findByNameContaining(anyString(), any(PageRequest.class))).thenReturn(expectedPage);
+
+        Page<Application> resultPage = applicationService.getApplicationsByName("Name", 0, 10);
+
+        assertEquals(2, resultPage.getTotalElements());
+
+        verify(applicationRepository, times(1)).findByNameContaining(anyString(), any(PageRequest.class));
+    }
+    @Test
+    void whenGetApplicationsByNameThrowsExceptionApplicationNotFound() {
+
+        when(applicationRepository.findByNameContaining(anyString(), any(PageRequest.class)))
+                .thenThrow(new ApplicationNotFoundException("No applications found with the provided name"));
+
+        assertThrows(ApplicationNotFoundException.class, () ->
+                        applicationService.getApplicationsByName("Name", 0, 10),
+                "Expected ApplicationNotFoundException to be thrown when no applications are found");
+
+        verify(applicationRepository, times(1)).findByNameContaining(anyString(), any(PageRequest.class));
+    }
+
+    @Test
+    void whenGetApplicationsByNameThrowsExceptionInvalidInput() {
+
+        assertThrows(InvalidInputException.class, () ->
+                        applicationService.getApplicationsByName(" ", 0, 10),
+                "Name parameter must not be empty");
+
+        verify(applicationRepository, never()).findByNameContaining(anyString(), any(PageRequest.class));
+    }
+    @Test
+    public void whenGetApplicationsByNameThrowsExceptionDatabaseOperation() {
+
+        when(applicationRepository.findByNameContaining(anyString(), any(PageRequest.class)))
+                .thenThrow(new DataAccessException("Test exception") {});
+
+        assertThrows(DatabaseOperationException.class, () ->
+                applicationService.getApplicationsByName("Name", 0, 10));
+
+        verify(applicationRepository, times(1)).findByNameContaining(anyString(), any(PageRequest.class));
+    }
+    @Test
+    public void whenGetApplicationsByStatusWithValidInput() {
+
+        Application app1 = new Application(1L, "Name1", "Content1", ApplicationStatus.CREATED, null, null, 0);
+        Application app2 = new Application(2L, "Name2", "Content2", ApplicationStatus.CREATED, null, null, 0);
+        List<Application> applications = Arrays.asList(app1, app2);
+
+        Page<Application> expectedPage = new PageImpl<>(applications);
+
+        when(applicationRepository.findByStatus(any(ApplicationStatus.class), any(PageRequest.class)))
+                .thenReturn(expectedPage);
+
+        Page<Application> resultPage = applicationService.getApplicationsByStatus(ApplicationStatus.CREATED, 0, 10);
+
+        assertEquals(2, resultPage.getTotalElements());
+        verify(applicationRepository, times(1)).findByStatus(any(ApplicationStatus.class), any(PageRequest.class));
+    }
+    @Test
+    void whenGetApplicationsByStatusThrowsExceptionApplicationNotFound() {
+
+        when(applicationRepository.findByStatus(any(ApplicationStatus.class), any(PageRequest.class)))
+                .thenThrow(new ApplicationNotFoundException("No applications found with the provided status"));
+
+        assertThrows(ApplicationNotFoundException.class, () ->
+                        applicationService.getApplicationsByStatus(ApplicationStatus.CREATED, 0, 10),
+                "Expected ApplicationNotFoundException to be thrown when no applications are found");
+
+        verify(applicationRepository, times(1)).findByStatus(any(ApplicationStatus.class), any(PageRequest.class));
+    }
+
+    @Test
+    public void whenGetApplicationsByStatusThrowsExceptionDatabaseOperation() {
+
+        when(applicationRepository.findByStatus(any(ApplicationStatus.class), any(PageRequest.class)))
+                .thenThrow(new DataAccessException("Test exception") {});
+
+        assertThrows(DatabaseOperationException.class, () ->
+                applicationService.getApplicationsByStatus(ApplicationStatus.CREATED, 0, 10));
+
+        verify(applicationRepository, times(1)).findByStatus(any(ApplicationStatus.class), any(PageRequest.class));
+    }
+
+    @Test
+    public void whenGetAllApplicationsThenReturnsPaginatedApplications() {
+
+        Application app1 = new Application(1L, "Name1", "Content1", ApplicationStatus.CREATED, null, null, 0);
+        Application app2 = new Application(2L, "Name2", "Content2", ApplicationStatus.CREATED, null, null, 0);
+        List<Application> applications = Arrays.asList(app1, app2);
+
+        Page<Application> expectedPage = new PageImpl<>(applications);
+
+        when(applicationRepository.findAll(any(Pageable.class))).thenReturn(expectedPage);
+
+        Page<Application> result = applicationService.getAllApplications(0, 10);
+
+        assertNotNull(result);
+        assertEquals(2, result.getContent().size());
+        assertEquals(1, result.getTotalPages());
+
+        verify(applicationRepository, times(1)).findAll(any(PageRequest.class));
+    }
+
+    @Test
+    public void whenGetAllApplicationsThrowsExceptionDatabaseOperation() {
+
+        when(applicationRepository.findAll(any(PageRequest.class)))
+                .thenThrow(new DataAccessException("Test exception") {});
+
+        assertThrows(DatabaseOperationException.class, () ->
+                applicationService.getAllApplications(0, 10));
+
+        verify(applicationRepository, times(1)).findAll(any(PageRequest.class));
+    }
+
+    @Test
+    public void whenGetPaginatedApplicationsResponseWithFullPage() {
+
+        List<ApplicationDTO> applicationList = Arrays.asList(new ApplicationDTO(), new ApplicationDTO());
+        Page<ApplicationDTO> applicationPage = new PageImpl<>(applicationList);
+
+        Map<String, Object> response = applicationService.getPaginatedApplicationsResponse(applicationPage);
+
+        assertEquals(applicationList, response.get("applications"));
+        assertEquals(0, response.get("currentPage"));
+        assertEquals(2L, response.get("totalItems"));
+        assertEquals(1, response.get("totalPages"));
+    }
+    @Test
+    public void whenGetPaginatedApplicationsResponseWithEmptyList() {
+
+        Page<ApplicationDTO> applicationPage = new PageImpl<>(Collections.emptyList());
+
+        Map<String, Object> response = applicationService.getPaginatedApplicationsResponse(applicationPage);
+
+        assertTrue(response.containsKey("applications"));
+        assertTrue(response.containsKey("currentPage"));
+        assertTrue(response.containsKey("totalItems"));
+        assertTrue(response.containsKey("totalPages"));
+
+        assertEquals(Collections.emptyList(), response.get("applications"));
+
+        assertEquals(0, response.get("currentPage"));
+        assertEquals(0L, response.get("totalItems"));
+        assertEquals(1, response.get("totalPages"));
+    }
+
+    @Test
+    public void whenGetPaginatedApplicationsResponseWithLargeDataset() {
+
+        long totalElements = 100;
+        List<ApplicationDTO> applications = new ArrayList<>();
+        for (int i = 0; i < totalElements; i++) {
+            applications.add(new ApplicationDTO());}
+
+                int page = 5;
+                int size = 10;
+                Page<ApplicationDTO> applicationPage = new PageImpl<>(applications, PageRequest.of(page, size), totalElements);
+
+                Map<String, Object> response = applicationService.getPaginatedApplicationsResponse(applicationPage);
+
+                assertNotNull(response.get("applications"));
+                assertEquals(page, response.get("currentPage"));
+                assertEquals(totalElements, response.get("totalItems"));
+                assertEquals((int) Math.ceil((double) totalElements / size), response.get("totalPages"));
+
+        }
+    }

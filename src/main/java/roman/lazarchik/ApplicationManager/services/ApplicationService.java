@@ -224,7 +224,7 @@ public class ApplicationService {
             Page<Application> applications = repository.findByStatus(status, pageable);
 
             if (applications.isEmpty()) {
-                throw new ApplicationNotFoundException("No applications found with the provided name");
+                throw new ApplicationNotFoundException("No applications found with the provided status");
             }
 
             return applications;
@@ -234,12 +234,15 @@ public class ApplicationService {
     }
 
     public Page<Application> getAllApplications(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        return repository.findAll(pageable);
+        try {
+            Pageable pageable = PageRequest.of(page, size);
+            return repository.findAll(pageable);
+        } catch (DataAccessException e) {
+            throw new DatabaseOperationException("Error occurred while accessing the database", e);
+        }
     }
 
     public Map<String, Object> getPaginatedApplicationsResponse(Page<ApplicationDTO> applications) {
-
 
         Map<String, Object> response = new HashMap<>();
         response.put("applications", applications.getContent());
