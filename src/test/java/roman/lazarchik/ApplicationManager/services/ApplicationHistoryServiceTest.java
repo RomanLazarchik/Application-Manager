@@ -1,10 +1,10 @@
 package roman.lazarchik.ApplicationManager.services;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import org.mockito.ArgumentCaptor;
+import org.springframework.beans.factory.annotation.Autowired;
 import roman.lazarchik.ApplicationManager.models.ApplicationHistory;
+import roman.lazarchik.ApplicationManager.models.ApplicationStatus;
 import roman.lazarchik.ApplicationManager.repositories.ApplicationHistoryRepository;
 
 import org.junit.jupiter.api.Test;
@@ -14,22 +14,20 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 @SpringBootTest
 class ApplicationHistoryServiceTest {
 
+    @Autowired
+    private ApplicationHistoryService service;
+
     @MockBean
-    private ApplicationHistoryRepository applicationHistoryRepository;
+    private ApplicationHistoryRepository applicationRepository;
 
     @Test
-    void whenSaveHistory_thenHistoryIsSaved() {
-        ApplicationHistoryService applicationHistoryService = new ApplicationHistoryService(applicationHistoryRepository);
+    void whenSaveHistoryThenHistoryIsSaved() {
 
         ApplicationHistory history = new ApplicationHistory();
+        history.setStatus(ApplicationStatus.CREATED);
 
-        ArgumentCaptor<ApplicationHistory> historyCaptor = ArgumentCaptor.forClass(ApplicationHistory.class);
+        service.saveHistory(history);
 
-        applicationHistoryService.saveHistory(history);
-
-        verify(applicationHistoryRepository).save(historyCaptor.capture());
-        ApplicationHistory capturedHistory = historyCaptor.getValue();
-
-        assertNotNull(capturedHistory);
+        verify(applicationRepository, times(1)).save(history);
     }
 }

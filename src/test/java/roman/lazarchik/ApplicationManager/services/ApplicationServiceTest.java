@@ -44,15 +44,15 @@ class ApplicationServiceTest {
 
     @Test
     void whenCreateApplicationWithValidInputThenApplicationIsCreated() {
-        // Given
+
         Application app = new Application();
         app.setName("Name");
         app.setContent("Content");
 
         when(applicationRepository.save(any())).thenReturn(app);
-        // When
+
         Application createdApp = applicationService.createApplication(app);
-        // Then
+
         assertEquals("Name", createdApp.getName());
         assertEquals("Content", createdApp.getContent());
         assertEquals(ApplicationStatus.CREATED, createdApp.getStatus());
@@ -63,15 +63,15 @@ class ApplicationServiceTest {
 
     @Test
     void whenCreateApplicationThenHistoryIsSaved() {
-        // Given
+
         Application app = new Application();
         app.setName("Name");
         app.setContent("Content");
 
         when(applicationRepository.save(any())).thenReturn(app);
-        // When
+
         applicationService.createApplication(app);
-        // Then
+
         ArgumentCaptor<ApplicationHistory> historyCaptor = ArgumentCaptor.forClass(ApplicationHistory.class);
         verify(applicationHistoryService).saveHistory(historyCaptor.capture());
 

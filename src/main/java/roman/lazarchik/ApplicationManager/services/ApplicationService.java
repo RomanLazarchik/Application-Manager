@@ -44,10 +44,6 @@ public class ApplicationService {
             throw new InvalidInputException("Fields 'name' and 'content' must not be null or empty");
         }
 
-//        if (repository.existsByNameAndContent(app.getName(), app.getContent())) {
-//            throw new ApplicationAlreadyExistsException("Application with name '" + app.getName() + "' and content already exists");
-//        }
-
         Application existingApp = repository.findByNameAndContent(app.getName(), app.getContent());
         if (existingApp != null) {
             return existingApp;

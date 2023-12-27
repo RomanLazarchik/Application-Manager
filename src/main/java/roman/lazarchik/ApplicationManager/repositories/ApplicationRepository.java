@@ -22,8 +22,6 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
 
     Application findByNameAndContent(String name, String content);
 
-    boolean existsByNameAndContent(String name, String content);
-
 }
 
 
