@@ -5,16 +5,15 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import roman.lazarchik.ApplicationManager.models.ApplicationStatus;
 
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public class ApplicationDTO {
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApplicationDTO {
 
-        private Long id;
-        private String name;
-        private String content;
-        private ApplicationStatus status;
-        private Integer publishedNumber;
-        private String reason;
-
-    }
+    private Long id;
+    private String name;
+    private String content;
+    private ApplicationStatus status;
+    private Integer publishedNumber;
+    private String reason;
+}

@@ -5,4 +5,3 @@ public class ApplicationNotFoundException extends RuntimeException {
         super(message);
     }
 }
-

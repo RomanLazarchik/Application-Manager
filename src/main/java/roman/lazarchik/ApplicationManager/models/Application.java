@@ -37,4 +37,3 @@ public class Application {
 
     private Integer publishedNumber;
 }
-

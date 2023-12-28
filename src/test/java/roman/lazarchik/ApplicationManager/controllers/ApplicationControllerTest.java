@@ -51,7 +51,6 @@ class ApplicationControllerTest {
     @MockBean
     private ApplicationMapper mapper;
 
-
     @Test
     void createApplication_Success() throws Exception {
         ApplicationDTO appDTO = new ApplicationDTO();

@@ -95,5 +95,3 @@ public class ApplicationController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 }
-
-

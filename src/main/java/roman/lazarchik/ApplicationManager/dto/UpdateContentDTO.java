@@ -12,4 +12,3 @@ public class UpdateContentDTO {
     @NotBlank(message = "Content must not be empty")
     private String content;
 }
-

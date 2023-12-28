@@ -11,9 +11,7 @@ public class ApplicationHistoryService {
 
     private final ApplicationHistoryRepository repository;
 
-
     public void saveHistory(ApplicationHistory history) {
         repository.save(history);
     }
 }
-

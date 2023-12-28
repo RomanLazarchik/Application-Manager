@@ -249,5 +249,3 @@ public class ApplicationService {
         return response;
     }
 }
-
-

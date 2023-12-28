@@ -7,8 +7,6 @@ import roman.lazarchik.ApplicationManager.models.Application;
 @Component
 public class ApplicationMapper {
 
-
-
     public Application toEntity(ApplicationDTO dto) {
         Application app = new Application();
         app.setId(dto.getId());
@@ -19,7 +17,6 @@ public class ApplicationMapper {
         app.setReason(dto.getReason());
         return app;
     }
-
     public ApplicationDTO toDto(Application entity) {
         ApplicationDTO appDTO = new ApplicationDTO();
         appDTO.setId(entity.getId());

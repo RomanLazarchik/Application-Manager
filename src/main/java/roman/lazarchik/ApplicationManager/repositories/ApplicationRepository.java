@@ -9,7 +9,6 @@ import roman.lazarchik.ApplicationManager.models.ApplicationStatus;
 
 import java.util.Optional;
 
-
 public interface ApplicationRepository extends JpaRepository<Application, Long> {
     Page<Application> findByNameContainingAndStatus(String name, ApplicationStatus status, Pageable pageable);
 
@@ -23,5 +22,3 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     Application findByNameAndContent(String name, String content);
 
 }
-
-

@@ -11,8 +11,7 @@ A Java Spring Boot application for managing applications throughout their lifecy
 - [Contribution](#Contribution)
 
 ## Overview
-The Application Manager allows users to create, verify, accept, reject, publish, and delete applications. The system keeps track of each application's history, and each change to an application will be recorded in the system.
-
+The Application Manager allows users to perform various operations on applications, such as creating, updating, deleting, verifying, rejecting, accepting, and publishing. The system keeps a detailed history of each application, recording changes to its status and content.
 ## Features
 - __Application CRUD operations:__ Create, Read, Update and Delete applications.
 - __Status Management:__ Move applications between different statuses: `CREATED`, `VERIFIED`, `ACCEPTED`, `PUBLISHED`, `REJECTED`, `DELETED`.
@@ -20,21 +19,26 @@ The Application Manager allows users to create, verify, accept, reject, publish,
 - __Advanced Searching:__ Fetch applications based on name and status with pagination support.
 
 ## API Endpoints
-- __Create Application: POST /applications__
-- __Update Application Content: PUT /applications/{id}__
-- __Delete Application: DELETE /applications/{id}__
-- __Verify Application: PUT /applications/{id}/verify__
-- __Reject Application: PUT /applications/{id}/reject__
-- __Accept Application: PUT /applications/{id}/accept__
-- __Publish Application: PUT /applications/{id}/publish__
-- __Get Applications: GET /applications__
-
+- **Create Application: POST /applications**
+    - Request Body: ApplicationDTO (name, content)
+- **Update Application Content: PUT /applications/{id}**
+    - Request Body: UpdateContentDTO (content)
+- **Delete Application: DELETE /applications/{id}**
+    - Request Body: DeleteDTO (reason)
+- **Verify Application: PUT /applications/{id}/verify**
+- **Reject Application: PUT /applications/{id}/reject**
+    - Request Body: RejectDTO (reason)
+- **Accept Application: PUT /applications/{id}/accept**
+- **Publish Application: PUT /applications/{id}/publish**
+- **Get Applications: GET /applications**
+    - Query Parameters: name (optional), status (optional), page (optional), size (optional)
+  
 ## Exceptions Handling
-The system has built-in exception handling for various scenarios:
+The system provides built-in exception handling for various scenarios:
 
 - __Application not found.__
 - __Invalid application status.__
-- __Application is already published.__
+- __Application already published.__
 - __Editing content not allowed based on status.__
 - __Invalid input__
 
@@ -51,7 +55,7 @@ mvn clean install
 4. After successful build, run:
 
 ```bash
-java -jar target/application-manager-<version>.jar
+java -jar target/ApplicationManager-0.0.1-SNAPSHOT.jar
 ```
 Or using Maven:
 
@@ -66,3 +70,6 @@ Once the application is running, you can use tools like __Postman__ or __curl__ 
 ## Contribution
 Feel free to fork the repository, make your changes, and raise a pull request. All contributions are welcome!
 
+## Future Plans
+- Implement JWT-based authentication for secure access.
+- Explore the adoption of the "State" design pattern for enhanced application state management.

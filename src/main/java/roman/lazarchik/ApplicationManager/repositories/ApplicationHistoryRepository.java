@@ -5,4 +5,3 @@ import roman.lazarchik.ApplicationManager.models.ApplicationHistory;
 
 public interface ApplicationHistoryRepository extends JpaRepository<ApplicationHistory, Long> {
 }
-

@@ -118,7 +118,7 @@ class ApplicationServiceTest {
     }
 
     @Test
-     void whenCreateApplicationAlreadyExists() {
+    void whenCreateApplicationAlreadyExists() {
 
         Application app = new Application();
         app.setName("Name");
@@ -209,6 +209,7 @@ class ApplicationServiceTest {
 
         verify(applicationRepository, never()).save(any(Application.class));
     }
+
     @Test
     public void whenUpdateContentThenHistoryIsSave() {
 
@@ -640,6 +641,7 @@ class ApplicationServiceTest {
 
         verify(applicationRepository, times(1)).save(any());
     }
+
     @Test
     void whenPublishApplicationSuccessfulAcceptanceReturnsPublishedApplication() {
 
@@ -737,6 +739,7 @@ class ApplicationServiceTest {
 
         verify(applicationRepository, times(1)).save(any());
     }
+
     @Test
     public void whenGetApplicationsByNameAndStatusWithValidInput() {
 
@@ -754,6 +757,7 @@ class ApplicationServiceTest {
         assertEquals(2, resultPage.getTotalElements());
         verify(applicationRepository, times(1)).findByNameContainingAndStatus(anyString(), any(ApplicationStatus.class), any(PageRequest.class));
     }
+
     @Test
     void whenGetApplicationsByNameAndStatusThrowsExceptionApplicationNotFound() {
 
@@ -776,14 +780,16 @@ class ApplicationServiceTest {
 
         verify(applicationRepository, never()).findByNameContainingAndStatus(anyString(), any(ApplicationStatus.class), any(PageRequest.class));
     }
+
     @Test
     public void whenGetApplicationsByNameAndStatusThrowsExceptionDatabaseOperation() {
 
         when(applicationRepository.findByNameContainingAndStatus(anyString(), any(ApplicationStatus.class), any(PageRequest.class)))
-                .thenThrow(new DataAccessException("Test exception") {});
+                .thenThrow(new DataAccessException("Test exception") {
+                });
 
         assertThrows(DatabaseOperationException.class, () ->
-            applicationService.getApplicationsByNameAndStatus("Name", ApplicationStatus.CREATED, 0, 10));
+                applicationService.getApplicationsByNameAndStatus("Name", ApplicationStatus.CREATED, 0, 10));
 
         verify(applicationRepository, times(1)).findByNameContainingAndStatus(anyString(), any(ApplicationStatus.class), any(PageRequest.class));
     }
@@ -805,6 +811,7 @@ class ApplicationServiceTest {
 
         verify(applicationRepository, times(1)).findByNameContaining(anyString(), any(PageRequest.class));
     }
+
     @Test
     void whenGetApplicationsByNameThrowsExceptionApplicationNotFound() {
 
@@ -827,17 +834,20 @@ class ApplicationServiceTest {
 
         verify(applicationRepository, never()).findByNameContaining(anyString(), any(PageRequest.class));
     }
+
     @Test
     public void whenGetApplicationsByNameThrowsExceptionDatabaseOperation() {
 
         when(applicationRepository.findByNameContaining(anyString(), any(PageRequest.class)))
-                .thenThrow(new DataAccessException("Test exception") {});
+                .thenThrow(new DataAccessException("Test exception") {
+                });
 
         assertThrows(DatabaseOperationException.class, () ->
                 applicationService.getApplicationsByName("Name", 0, 10));
 
         verify(applicationRepository, times(1)).findByNameContaining(anyString(), any(PageRequest.class));
     }
+
     @Test
     public void whenGetApplicationsByStatusWithValidInput() {
 
@@ -855,6 +865,7 @@ class ApplicationServiceTest {
         assertEquals(2, resultPage.getTotalElements());
         verify(applicationRepository, times(1)).findByStatus(any(ApplicationStatus.class), any(PageRequest.class));
     }
+
     @Test
     void whenGetApplicationsByStatusThrowsExceptionApplicationNotFound() {
 
@@ -872,7 +883,8 @@ class ApplicationServiceTest {
     public void whenGetApplicationsByStatusThrowsExceptionDatabaseOperation() {
 
         when(applicationRepository.findByStatus(any(ApplicationStatus.class), any(PageRequest.class)))
-                .thenThrow(new DataAccessException("Test exception") {});
+                .thenThrow(new DataAccessException("Test exception") {
+                });
 
         assertThrows(DatabaseOperationException.class, () ->
                 applicationService.getApplicationsByStatus(ApplicationStatus.CREATED, 0, 10));
@@ -904,7 +916,8 @@ class ApplicationServiceTest {
     public void whenGetAllApplicationsThrowsExceptionDatabaseOperation() {
 
         when(applicationRepository.findAll(any(PageRequest.class)))
-                .thenThrow(new DataAccessException("Test exception") {});
+                .thenThrow(new DataAccessException("Test exception") {
+                });
 
         assertThrows(DatabaseOperationException.class, () ->
                 applicationService.getAllApplications(0, 10));
@@ -925,6 +938,7 @@ class ApplicationServiceTest {
         assertEquals(2L, response.get("totalItems"));
         assertEquals(1, response.get("totalPages"));
     }
+
     @Test
     public void whenGetPaginatedApplicationsResponseWithEmptyList() {
 
@@ -950,18 +964,19 @@ class ApplicationServiceTest {
         long totalElements = 100;
         List<ApplicationDTO> applications = new ArrayList<>();
         for (int i = 0; i < totalElements; i++) {
-            applications.add(new ApplicationDTO());}
-
-                int page = 5;
-                int size = 10;
-                Page<ApplicationDTO> applicationPage = new PageImpl<>(applications, PageRequest.of(page, size), totalElements);
-
-                Map<String, Object> response = applicationService.getPaginatedApplicationsResponse(applicationPage);
-
-                assertNotNull(response.get("applications"));
-                assertEquals(page, response.get("currentPage"));
-                assertEquals(totalElements, response.get("totalItems"));
-                assertEquals((int) Math.ceil((double) totalElements / size), response.get("totalPages"));
-
+            applications.add(new ApplicationDTO());
         }
+
+        int page = 5;
+        int size = 10;
+        Page<ApplicationDTO> applicationPage = new PageImpl<>(applications, PageRequest.of(page, size), totalElements);
+
+        Map<String, Object> response = applicationService.getPaginatedApplicationsResponse(applicationPage);
+
+        assertNotNull(response.get("applications"));
+        assertEquals(page, response.get("currentPage"));
+        assertEquals(totalElements, response.get("totalItems"));
+        assertEquals((int) Math.ceil((double) totalElements / size), response.get("totalPages"));
+
     }
+}

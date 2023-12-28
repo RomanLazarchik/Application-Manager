@@ -29,5 +29,3 @@ public class ApplicationHistory {
     @JsonBackReference
     private Application application;
 }
-
-
